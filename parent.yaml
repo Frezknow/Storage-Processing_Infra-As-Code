@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Parent Stack to manage nested stacks
+
+Resources:
+  NetworkingStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://s3.amazonaws.com/your-bucket/networking.yaml'
+      TimeoutInMinutes: 10
+
+  StorageStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://s3.amazonaws.com/your-bucket/storage.yaml'
+      TimeoutInMinutes: 10
+
+  ComputeStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://s3.amazonaws.com/your-bucket/compute.yaml'
+      Parameters:
+        VPCId: !GetAtt NetworkingStack.Outputs.VPCId
+        PublicSubnetId: !GetAtt NetworkingStack.Outputs.PublicSubnetId
+        PrivateSubnetId: !GetAtt NetworkingStack.Outputs.PrivateSubnetId
+        S3BucketName: !GetAtt StorageStack.Outputs.S3BucketName
+      TimeoutInMinutes: 10
+
+  DatabaseStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://s3.amazonaws.com/your-bucket/database.yaml'
+      Parameters:
+        VPCId: !GetAtt NetworkingStack.Outputs.VPCId
+        PrivateSubnetId: !GetAtt NetworkingStack.Outputs.PrivateSubnetId
+        EC2SecurityGroup: !GetAtt ComputeStack.Outputs.EC2SecurityGroup
+      TimeoutInMinutes: 10
+
+  CICDStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://s3.amazonaws.com/your-bucket/cicd.yaml'
+      Parameters:
+        SourceBucket: !GetAtt ComputeStack.Outputs.SourceBucket
+        S3BucketName: !GetAtt StorageStack.Outputs.S3BucketName
+      TimeoutInMinutes: 10
+
+Outputs:
+  VPCId:
+    Value: !GetAtt NetworkingStack.Outputs.VPCId
+  PublicSubnetId:
+    Value: !GetAtt NetworkingStack.Outputs.PublicSubnetId
+  PrivateSubnetId:
+    Value: !GetAtt NetworkingStack.Outputs.PrivateSubnetId
+  S3BucketName:
+    Value: !GetAtt StorageStack.Outputs.S3BucketName
+  DjangoEC2InstancePublicDNS:
+    Value: !GetAtt ComputeStack.Outputs.DjangoEC2InstancePublicDNS
+  DjangoDBEndpoint:
+    Value: !GetAtt DatabaseStack.Outputs.DjangoDBEndpoint
+  CodePipelineName:
+    Value: !GetAtt CICDStack.Outputs.CodePipelineName
