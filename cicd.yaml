@@ -1,7 +1,13 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: CI/CD Stack
+Description: CI/CD Stack with CodeCommit Integration
 
 Resources:
+  CodeCommitRepository:
+    Type: 'AWS::CodeCommit::Repository'
+    Properties:
+      RepositoryName: django-app-repo
+      RepositoryDescription: Repository for Django application source code
+
   CodeDeployApplication:
     Type: 'AWS::CodeDeploy::Application'
     Properties:
@@ -22,6 +28,9 @@ Resources:
         Enabled: true
         Events:
           - DEPLOYMENT_FAILURE
+      DeploymentStyle:
+        DeploymentType: IN_PLACE
+        DeploymentOption: WITH_TRAFFIC_CONTROL
 
   CodeDeployServiceRole:
     Type: 'AWS::IAM::Role'
@@ -69,15 +78,13 @@ Resources:
               ActionTypeId:
                 Category: Source
                 Owner: AWS
-                Provider: S3
+                Provider: CodeCommit
                 Version: 1
               OutputArtifacts:
                 - Name: SourceArtifact
               Configuration:
-                S3Bucket: !Ref Source
-              Configuration:
-                S3Bucket: !Ref SourceBucket
-                S3ObjectKey: source.zip
+                RepositoryName: !Ref CodeCommitRepository
+                BranchName: master
               RunOrder: 1
         - Name: Deploy
           Actions:
@@ -127,14 +134,15 @@ Resources:
     Properties:
       BucketName: !Sub '${AWS::StackName}-artifact-bucket'
 
-  SourceBucket:
-    Type: 'AWS::S3::Bucket'
-    Properties:
-      BucketName: !Sub '${AWS::StackName}-source-bucket'
-
 Outputs:
   CodePipelineName:
     Description: Name of the CodePipeline
     Value: !Ref CodePipeline
     Export:
       Name: CodePipelineName
+
+  CodeCommitRepositoryName:
+    Description: Name of the CodeCommit repository
+    Value: !Ref CodeCommitRepository
+    Export:
+      Name: CodeCommitRepositoryName

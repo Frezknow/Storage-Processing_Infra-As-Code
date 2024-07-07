@@ -40,8 +40,10 @@ Resources:
     Properties:
       TemplateURL: 'https://s3.amazonaws.com/your-bucket/cicd.yaml'
       Parameters:
-        SourceBucket: !GetAtt ComputeStack.Outputs.SourceBucket
-        S3BucketName: !GetAtt StorageStack.Outputs.S3BucketName
+        SourceBucket: !GetAtt StorageStack.Outputs.S3BucketName
+        ArtifactBucket: !Ref CodePipelineArtifactBucket
+        ApplicationName: !Ref CodeDeployApplication
+        DeploymentGroupName: !Ref CodeDeployDeploymentGroup
       TimeoutInMinutes: 10
 
 Outputs:
@@ -59,3 +61,5 @@ Outputs:
     Value: !GetAtt DatabaseStack.Outputs.DjangoDBEndpoint
   CodePipelineName:
     Value: !GetAtt CICDStack.Outputs.CodePipelineName
+  CodeCommitRepositoryName:
+    Value: !GetAtt CICDStack.Outputs.CodeCommitRepositoryName
